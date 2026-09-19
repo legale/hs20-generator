@@ -3,3 +3,6 @@ __pycache__/
 *.py[cod]
 *.mobileconfig
 mkdarwin-hs20
+capture-*.pcap
+capture-*.log
+ctx.tar.xz

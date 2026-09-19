@@ -133,3 +133,74 @@ Interfaces:
 - Файлы захвата на AP:
   `/tmp/darwin-hs20-20260919-152714.pcap`,
   `/tmp/darwin-hs20-20260919-152714-hostapd.log`.
+
+## 2026-09-19 — повторный параллельный захват AP и RADIUS
+
+- Предыдущий захват остановлен; новый захват запущен одновременно на AP и
+  RADIUS перед повторной попыткой Passpoint.
+- AP `10.11.11.101`:
+
+  ```sh
+  tcpdump -ni any -s0 -U \
+    -w /tmp/ap-radius-20260919-155010.pcap \
+    "udp port 1812 and host 172.16.133.254"
+  ```
+
+- RADIUS `172.16.133.254`:
+
+  ```sh
+  sudo systemd-run --unit=radius-capture-20260919-155010 --collect --quiet \
+    /usr/sbin/tcpdump -ni any -s0 -U \
+    -w /tmp/radius-20260919-155010.pcap "udp port 1812"
+  ```
+
+- После попытки на AP выполнено ровно:
+
+  ```sh
+  logread | grep hostapd | tail -500
+  ```
+
+  Сохранено 500 строк в `/tmp/ap-radius-20260919-155010-hostapd.log`.
+- Статистика захвата: AP — `50 packets captured`, `0 packets dropped`; RADIUS —
+  `25 packets captured`, `0 packets dropped`.
+- В корень репозитория скопированы артефакты:
+  `capture-20260919-155010-ap.pcap`,
+  `capture-20260919-155010-radius.pcap`,
+  `capture-20260919-155010-hostapd.log`,
+  `capture-20260919-155010-ap-tcpdump.log` и
+  `capture-20260919-155010-radius-journal.log`.
+
+Сопоставление `tshark` по AP pcap и RADIUS pcap:
+
+| Время AP TX | RADIUS Identifier | State | EAP Identifier | EAP length | RADIUS length | Message-Authenticator | Результат |
+| --- | --- | --- | ---: | ---: | ---: | --- | --- |
+| 15:50:24.822348 | `0x7d` | `8594b8472211afa605102df3b399952b` | 103 | 1181 | 1456 | `87d2ee1790f393de689475f6ab243fb5` | AP TX и server RX есть; server TX и AP RX отсутствуют |
+| 15:50:54.499230 | `0x83` | `3321b938d733165b729f6df0c3b0a3ac` | 201 | 1181 | 1456 | `2977532ea71157d5bfdee2bbd333176a` | AP TX и server RX есть; server TX и AP RX отсутствуют |
+
+- Для первого финального фрагмента `id=0x7d` RADIUS pcap содержит server RX в
+  `15:50:24.824079`; тот же пакет повторён через 3, 6 и 12 секунд. Ответов на
+  эти повторы нет.
+- Для второго финального фрагмента `id=0x83` RADIUS pcap содержит server RX в
+  `15:50:54.500330`; ответа также нет.
+- Предыдущие EAP-TLS фрагменты получают ответы `Access-Challenge`, поэтому
+  маршрут AP—RADIUS, начальная EAP-TLS фаза и обратный путь работают.
+- В серверном `journalctl --since "10 min ago"` перед финальным фрагментом
+  повторяется ошибка:
+
+  ```text
+  AbstractPacketHandler:340 - Index 3 out of bounds for length 3
+  java.lang.ArrayIndexOutOfBoundsException
+  at AbstractPacketHandler.parseTLV(AbstractPacketHandler.java:193)
+  at AbstractPacketHandler.parseVendorSpecific(AbstractPacketHandler.java:135)
+  ```
+
+  Перед ошибкой сервер печатает `parseTLV name=dhcp-option, raw='00000076'`.
+  Этот VSA соответствует настроенному на AP атрибуту
+  `radius_auth_req_attr='26:x:00005a3b050600000076'`.
+- Для пакета с финальным EAP-TLS fragment (`EAP id=103`/`201`) серверный pcap
+  подтверждает прием UDP, но в application log нет обработки этого пакета и
+  нет `Access-Challenge`, `Access-Accept` или `Access-Reject`. Это исключает
+  потерю пакета между AP и сервером и локализует проблему в обработке RADIUS
+  packet на сервере; ошибка парсинга NeTAMS VSA — основной подозреваемый.
+- В последних 500 строках `hostapd` полезных EAP-строк нет: хвост занят
+  повторным выводом beacon/nl80211-конфигурации. Это не меняет результат pcap.
