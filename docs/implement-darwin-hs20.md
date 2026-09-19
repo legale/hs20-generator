@@ -2,8 +2,8 @@
 
 ## Цель
 
-Добавить рядом с `mkdarwin.py` отдельный генератор Apple `mobileconfig` для
-Hotspot 2.0 / Passpoint с EAP-TLS.
+Переписать Darwin-генератор Apple `mobileconfig` для Hotspot 2.0 / Passpoint с
+EAP-TLS на простой C без plist-библиотек и OpenSSL API.
 
 ## Исходное состояние
 
@@ -14,22 +14,23 @@ Hotspot 2.0 / Passpoint с EAP-TLS.
 
 ## Решение
 
-Добавить отдельный скрипт `mkdarwin-hs20.py`, не изменяя рабочий
-`mkdarwin.py`.
+Добавить `mkdarwin-hs20.c` рядом с существующим `mkdarwin-hs20.py`, не изменяя
+рабочие генераторы.
 
-Скрипт будет:
+Программа будет:
 
 1. Принимать `FRIENDLY_NAME FQDN REALM client.pfx`.
-2. Извлекать из PFX клиентский сертификат, закрытый ключ и CA-сертификаты.
+2. Вызывать установленный `openssl` для извлечения CA-сертификатов из PFX.
 3. Находить self-signed root CA и добавлять его как
    `com.apple.security.root` payload.
-4. Добавлять PFX как `com.apple.security.pkcs12` payload.
-5. Создавать `com.apple.wifi.managed` payload с:
+4. Добавлять исходный PFX как `com.apple.security.pkcs12` payload.
+5. Самостоятельно формировать XML plist и base64 без plist-библиотеки.
+6. Создавать `com.apple.wifi.managed` payload с:
    - `DisplayedOperatorName`;
    - `DomainName`;
    - `NAIRealmNames`;
    - EAP-TLS configuration.
-6. Записывать XML plist в файл с суффиксом `-hs20.mobileconfig`.
+7. Записывать XML plist в файл с суффиксом `-hs20.mobileconfig`.
 
 ## Границы
 
@@ -38,10 +39,12 @@ Hotspot 2.0 / Passpoint с EAP-TLS.
 - Не выдумывать `RoamingConsortiumOIs`, `MCCAndMNCs` и другие параметры,
   которых нет в текущем PoC.
 - Не добавлять архитектурные слои или общий framework для двух скриптов.
+- Не реализовывать собственный ASN.1/PKCS#12/PBES стек.
 
 ## Проверка
 
-- Проверить синтаксис нового Python-скрипта.
+- Собрать C-программу системным C-компилятором.
+- Проверить usage программы без аргументов.
 - На тестовом PFX сгенерировать `mobileconfig`.
 - Распарсить plist и проверить наличие трёх payload-типов.
 - Проверить значения HS20-полей и EAP-TLS payload.
@@ -49,5 +52,5 @@ Hotspot 2.0 / Passpoint с EAP-TLS.
 
 ## Документация
 
-После реализации добавить в `README.md` пример запуска нового генератора и
-описать формат его аргументов.
+После реализации добавить в `README.md` команды сборки и запуска нового
+генератора, а также описать зависимость от `openssl` для PFX-разбора.

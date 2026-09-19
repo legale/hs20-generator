@@ -77,17 +77,21 @@ EAP: EAP-TLS
 Для Apple-профиля Passpoint/HS20 используется отдельный генератор:
 
 ```sh
-./mkdarwin-hs20.py FRIENDLY_NAME FQDN REALM client.pfx
+cc -std=c11 -O2 -Wall -Wextra -o mkdarwin-hs20 mkdarwin-hs20.c
+./mkdarwin-hs20 FRIENDLY_NAME FQDN REALM client.pfx
 ```
 
-Он создаёт `mobileconfig` с HS20-полями `DisplayedOperatorName`, `DomainName`
+Существующий Python-вариант `mkdarwin-hs20.py` сохранён рядом.
+
+Оба генератора создают `mobileconfig` с HS20-полями `DisplayedOperatorName`, `DomainName`
 и `NAIRealmNames`, а EAP-TLS identity и доверенный корневой сертификат берёт из
-PFX так же, как обычный Darwin-генератор.
+PFX так же, как обычный Darwin-генератор. Для разбора зашифрованного PFX во
+время запуска требуется установленный `openssl`.
 
 Пример с параметрами рабочего Android PoC:
 
 ```sh
-./mkdarwin-hs20.py NETAMS wifi.netams.com netams.com rutest-rsa.pfx
+./mkdarwin-hs20 NETAMS wifi.netams.com netams.com rutest-rsa.pfx
 ```
 
 Для текущего теста генератор использует тестовое значение
