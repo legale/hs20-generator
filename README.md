@@ -83,3 +83,15 @@ EAP: EAP-TLS
 Он создаёт `mobileconfig` с HS20-полями `DisplayedOperatorName`, `DomainName`
 и `NAIRealmNames`, а EAP-TLS identity и доверенный корневой сертификат берёт из
 PFX так же, как обычный Darwin-генератор.
+
+Пример с параметрами рабочего Android PoC:
+
+```sh
+./mkdarwin-hs20.py NETAMS wifi.netams.com netams.com rutest-rsa.pfx
+```
+
+Для текущего теста генератор использует тестовое значение
+`RoamingConsortiumOIs=112233` и явно помечает payload как `IsHotspot=true`.
+Для подключения к реальной сети OI нужно заменить на значение из beacon/ANQP
+этой сети. `MCCAndMNCs` в macOS-профиль не добавляется: Apple указывает его как
+недоступный на macOS.

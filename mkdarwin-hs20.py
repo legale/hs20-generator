@@ -9,6 +9,8 @@ import tempfile
 import uuid
 from pathlib import Path
 
+ROAMING_CONSORTIUM_OIS = ["112233"]
+
 
 def die(msg):
     print(f"mkdarwin-hs20: {msg}", file=sys.stderr)
@@ -143,10 +145,12 @@ def main():
         "PayloadDisplayName": friendly_name,
         "AutoJoin": True,
         "EncryptionType": "WPA",
+        "IsHotspot": True,
         "PayloadCertificateUUID": ident_uuid,
         "DisplayedOperatorName": friendly_name,
         "DomainName": fqdn,
         "NAIRealmNames": [realm],
+        "RoamingConsortiumOIs": ROAMING_CONSORTIUM_OIS,
         "EAPClientConfiguration": {
             "AcceptEAPTypes": [13],
             "TLSCertificateIsRequired": True,
