@@ -204,3 +204,51 @@ Interfaces:
   packet на сервере; ошибка парсинга NeTAMS VSA — основной подозреваемый.
 - В последних 500 строках `hostapd` полезных EAP-строк нет: хвост занят
   повторным выводом beacon/nl80211-конфигурации. Это не меняет результат pcap.
+
+## 2026-09-19 — журнал RADIUS за последние 5 минут
+
+- Выполнена команда на сервере `172.16.133.254`:
+
+  ```sh
+  sudo journalctl --since "5 min ago" --no-pager -o short-iso
+  ```
+
+- Лог сохранён в корне репозитория:
+  `capture-20260919-164705-radius-journal-5min.log`.
+- В свежем окне видна попытка от AP `10.11.11.101`, realm —
+  `null@wifi.netams.com`.
+- В `16:45:56` сервер принял финальный крупный EAP-TLS fragment:
+
+  ```text
+  RADIUS-DIAG A source=10.11.11.101 id=146 datagram_length=1553 declared_length=1553
+  RADIUS-DIAG C ... eap=code=2,id=235,type=13,length=1276,data_length=1276
+  RADIUS-DIAG L eap_tls entry input_length=1266 more_fragments=true length_included=true
+  RADIUS-DIAG N source=10.11.11.101 id=146 response_type=Access-Challenge
+  ```
+
+  То есть в этой попытке серверный RADIUS packet и EAP-TLS fragment были
+  разобраны, после чего сервер отправил следующий `Access-Challenge`.
+- В `16:46:41` сервер завершил сессию отказом:
+
+  ```text
+  AccessHandler:617 - reactor.core.Exceptions$RetryExhaustedException: Retries exhausted: 3/3
+  Response state: FAIL
+  handleRadiusPacket AUTH as=10.11.11.101, return=FAIL Retries exhausted: 3/3
+  RADIUS-DIAG N ... id=148 response_type=Access-Reject
+  ```
+
+- Одновременно сервер не может получить токен для внутренних запросов:
+
+  ```text
+  AccessException: The token was not received
+  No servers available for service: w2config
+  Error status: 503 SERVICE_UNAVAILABLE
+  Can't start RadiusService Next attempt in 3 sec
+  ```
+
+- Важное уточнение предыдущего вывода: VSA-поля действительно имеют
+  некорректный размер (`vendor_type=3 declared_length=5 actual_data_length=3`),
+  и сервер пишет `parseTLV unsafe index=3`, но в этой попытке парсер доходит до
+  `parse_done` и сам по себе не блокирует EAP-TLS. Непосредственная причина
+  текущего отказа — недоступность `w2config`/токена и последующее исчерпание
+  внутренних повторов RADIUS.
