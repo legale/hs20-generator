@@ -94,8 +94,7 @@ PFX так же, как обычный Darwin-генератор. Для раз�
 ./mkdarwin-hs20 NETAMS wifi.netams.com netams.com rutest-rsa.pfx
 ```
 
-Для текущего теста генератор использует тестовое значение
-`RoamingConsortiumOIs=112233` и явно помечает payload как `IsHotspot=true`.
-Для подключения к реальной сети OI нужно заменить на значение из beacon/ANQP
-этой сети. `MCCAndMNCs` в macOS-профиль не добавляется: Apple указывает его как
-недоступный на macOS.
+Генератор явно помечает payload как `IsHotspot=true`. Поля
+`RoamingConsortiumOIs` и `MCCAndMNCs` в профиль не добавляются: значения OI нет
+в конфигурации текущей HS20-сети, а Apple указывает `MCCAndMNCs` как
+недоступное на macOS.

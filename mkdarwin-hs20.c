@@ -477,7 +477,6 @@ static void write_wifi(FILE *fp, const char *friendly_name, const char *fqdn,
   xml_key(fp, "DomainName");
   xml_string(fp, fqdn);
   write_string_array(fp, "NAIRealmNames", realm);
-  write_string_array(fp, "RoamingConsortiumOIs", "112233");
   xml_key(fp, "EAPClientConfiguration");
   fputs("<dict>", fp);
   xml_key(fp, "AcceptEAPTypes");

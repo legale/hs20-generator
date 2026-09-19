@@ -78,4 +78,23 @@ Interfaces:
   PKCS#12, root CA и Wi-Fi HS20; plist распарсирован успешно.
 - Python-генератор `mkdarwin-hs20.py` не удалён и сохранён рядом.
 - Дополнительно выполнено `plutil -lint NETAMS-hs20.mobileconfig`: `OK`.
+
+## 2026-09-19 — удаление тестового Roaming Consortium OI
+
+- Удалён тестовый `RoamingConsortiumOIs=["112233"]` из Python- и C-генераторов.
+- Причина: значение было случайным и отсутствует в конфигурации текущей HS20-сети
+  OpenWrt; оно могло мешать macOS сопоставить профиль `NETAMS` с Passpoint-сетью.
+- README обновлён: генераторы больше не добавляют `RoamingConsortiumOIs` и
+  `MCCAndMNCs`.
+- Проверки после изменения:
+  - `python3 -m py_compile mkdarwin-hs20.py` — успешно.
+  - `cc -std=c11 -O2 -Wall -Wextra -o mkdarwin-hs20 mkdarwin-hs20.c` — успешно,
+    без предупреждений.
+  - Оба генератора создали профиль с `NETAMS`, `wifi.netams.com` и
+    `netams.com`; проверка plist подтвердила отсутствие `RoamingConsortiumOIs`
+    и `MCCAndMNCs`.
+  - `plutil -lint NETAMS-hs20.mobileconfig` — `OK`.
+  - `git diff --check` — успешно.
+  - `make test` — не выполнен: в репозитории нет `Makefile` и цели `test`;
+    команда завершилась с кодом 2.
 - C-генератор и документация закоммичены в commit `3f38211`.
