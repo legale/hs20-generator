@@ -252,3 +252,42 @@ Interfaces:
   `parse_done` и сам по себе не блокирует EAP-TLS. Непосредственная причина
   текущего отказа — недоступность `w2config`/токена и последующее исчерпание
   внутренних повторов RADIUS.
+
+## 2026-09-19 — повторная попытка после изменений на сервере
+
+- Перед попыткой запущен сбор журнала сервера:
+
+  ```sh
+  ssh sysadmin@172.16.133.254 \
+    'sudo -n journalctl --since "5 min ago" -f --no-pager -o short-iso' \
+    > capture-20260919-220000-radius-journal-live.log
+  ```
+
+- После сообщения о завершении попытки сбор остановлен. Получено 8047 строк.
+- В этом окне нет строк с `10.11.11.101`, `RADIUS-DIAG` или
+  `handleRadiusPacket AUTH`; новая попытка с AP до обработчика RADIUS не дошла.
+- На сервере в это же время повторяются конкретные ошибки:
+
+  ```text
+  No servers available for service: w2config
+  The token was not received
+  503 Service Unavailable from UNKNOWN
+  ```
+
+- Проверка Eureka показала, что экземпляр `W2CONFIG` зарегистрирован, но имеет
+  статус `STARTING` и `overriddenstatus=UNKNOWN`:
+
+  ```text
+  instanceId=172.16.133.254:w2config:13208adca5397302951f10caeb37f402
+  status=STARTING
+  overriddenstatus=UNKNOWN
+  port=8080
+  ```
+
+- Процесс `w2config` запущен, порт `8080` слушается, а
+  `GET http://127.0.0.1:8080/actuator/health` возвращает `200` и `{"status":"UP"}`.
+  Следовательно, проблема не в падении процесса или порта: сервис не переводится
+  в состояние `UP` в Eureka, и Spring LoadBalancer исключает его из маршрутизации.
+- Время попытки совпало только с сообщениями о недоступном `w2config`; в журнале
+  `w2config` нет новой RADIUS-сессии. Диагноз: сначала нужно восстановить
+  регистрацию/readiness `w2config` в Eureka, затем повторять проверку профиля.

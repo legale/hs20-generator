@@ -1,6 +1,7 @@
 .DS_Store
 __pycache__/
 *.py[cod]
+*.swp
 *.mobileconfig
 mkdarwin-hs20
 capture-*.pcap
