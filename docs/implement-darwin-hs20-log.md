@@ -98,3 +98,38 @@ Interfaces:
   - `make test` — не выполнен: в репозитории нет `Makefile` и цели `test`;
     команда завершилась с кодом 2.
 - C-генератор и документация закоммичены в commit `3f38211`.
+
+## 2026-09-19 — pcap и hostapd во время попытки Darwin HS20
+
+- Захват выполнен на AP `root@10.11.11.101`, SSID `gost-eap-tls`, интерфейсы
+  `awlan0_118` и `awlan1_118`.
+- Запущена команда захвата:
+
+  ```sh
+  tcpdump -i any -s 0 -U -w /tmp/darwin-hs20-20260919-152714.pcap \
+    '(ether proto 0x888e) or (udp port 1812) or (udp port 1813)'
+  ```
+
+- Команда снятия hostapd-лога:
+
+  ```sh
+  logread | grep hostapd | tail -300
+  ```
+
+- Получено `50 packets captured`, `0 packets dropped by kernel`.
+- В hostapd подтверждён HS20/ANQP-запрос Mac:
+  `GAS Initial Request`, запрошены `Domain Name`, `NAI Realm` и `HS 2.0 Query
+  List`; `Roaming Consortium not available` и `Operator Friendly Name not
+  available`.
+- В RADIUS-трафике виден Passpoint realm: `User-Name: null@wifi.netams.com`.
+- RADIUS отправляет `Access-Challenge`, после чего AP отправляет EAP-TLS
+  фрагмент с клиентским сертификатом:
+  `Access-Request id=0x71`, `EAP Response`, `Type TLS`, EAP length `1181`.
+- После этого RADIUS не отвечает: пакет `id=0x71` повторён примерно через 3,
+  6 и 12 секунд. Нет ни `Access-Accept`, ни `Access-Reject`.
+- Это объясняет macOS timeout: проблема происходит после HS20 discovery и во
+  время проверки/обработки клиентского EAP-TLS сертификата на стороне RADIUS;
+  окно выбора сертификата появляется уже после fallback на обычный EAP-TLS.
+- Файлы захвата на AP:
+  `/tmp/darwin-hs20-20260919-152714.pcap`,
+  `/tmp/darwin-hs20-20260919-152714-hostapd.log`.
