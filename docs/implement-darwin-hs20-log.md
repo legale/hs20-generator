@@ -36,3 +36,30 @@
 - `networksetup -getairportnetwork en0` в текущем окружении вернул
   `You are not associated with an AirPort network`, поэтому для статуса принят
   подробный результат `system_profiler SPAirPortDataType`.
+
+Команды и вывод проверки:
+
+```sh
+networksetup -getairportnetwork en0
+```
+
+```text
+You are not associated with an AirPort network.
+```
+
+```sh
+system_profiler SPAirPortDataType
+```
+
+```text
+Interfaces:
+  en0:
+    Status: Connected
+    Current Network Information:
+      gost-eap-tls:
+        Network Type: Infrastructure
+        Security: WPA2 Enterprise
+```
+
+Итог: MacBook подключён к `gost-eap-tls` по обычному WPA2 Enterprise, а не к
+сети Passpoint/HS20 `NETAMS`.
