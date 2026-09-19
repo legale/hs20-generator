@@ -76,3 +76,6 @@ Interfaces:
 - Проверен usage без аргументов.
 - На `rutest-rsa.pfx` создан `NETAMS-hs20.mobileconfig` с payload-типами
   PKCS#12, root CA и Wi-Fi HS20; plist распарсирован успешно.
+- Python-генератор `mkdarwin-hs20.py` не удалён и сохранён рядом.
+- Дополнительно выполнено `plutil -lint NETAMS-hs20.mobileconfig`: `OK`.
+- C-генератор и документация закоммичены в commit `3f38211`.
