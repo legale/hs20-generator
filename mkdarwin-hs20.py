@@ -160,7 +160,7 @@ def main():
         "NAIRealmNames": [realm],
         "EAPClientConfiguration": {
             "AcceptEAPTypes": [13],
-            "UserName": username,
+            "UserName": f"{username}@{fqdn}",
             "TLSCertificateIsRequired": True,
             "TLSAllowTrustExceptions": False,
             "PayloadCertificateAnchorUUID": anchor_uuids,

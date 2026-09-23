@@ -208,7 +208,7 @@ def make_pps(fingerprint, username):
     node(home, "FQDN", FQDN)
 
     cred = node(inst, "Credential")
-    node(cred, "Username", username)
+    node(cred, "Username", f"{username}@{FQDN}")
     node(cred, "Realm", REALM)
 
     cert = node(cred, "DigitalCertificate")

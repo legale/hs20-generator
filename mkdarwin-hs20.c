@@ -358,7 +358,7 @@ static int read_cert_cn(const char *path, const char *info_path,
 
   p += 3;
   end = strchr(p, ',');
-  n = end ? (size_t)(end - p) : strlen(p);
+  n = end ? (size_t)(end - p) : strcspn(p, "\r\n");
   if (!n || n >= cn_len) {
     free(data);
     return -1;
@@ -637,6 +637,7 @@ int main(int argc, char **argv)
   char out_name[PATH_MAX];
   char tmp_dir[PATH_MAX];
   char username[MAX_CN];
+  char nai[PATH_MAX];
   unsigned char *pfx;
   unsigned char *data;
   size_t pfx_len;
@@ -698,6 +699,9 @@ int main(int argc, char **argv)
   free(data);
   if (read_cert_cn(client_path, info_path, username, sizeof(username)) < 0)
     die("client certificate has no CN");
+  if (snprintf(nai, sizeof(nai), "%s@%s", username, argv[2]) >=
+      (int)sizeof(nai))
+    die("NAI is too long");
   if (read_file(key_path, &data, &data_len) < 0 ||
       !strstr((char *)data, "PRIVATE KEY-----"))
     die("PFX has no private key");
@@ -727,7 +731,7 @@ int main(int argc, char **argv)
                         "-hs20.mobileconfig");
   if (output_len < 0 || (size_t)output_len >= sizeof(out_name) - output_used)
     die("output filename is too long");
-  write_profile(out_name, argv[1], argv[2], argv[3], password, username,
+  write_profile(out_name, argv[1], argv[2], argv[3], password, nai,
                 argv[4], pfx, pfx_len, roots, root_count);
   free(pfx);
   cleanup_tmp(tmp_dir, roots, root_count);
