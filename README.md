@@ -98,3 +98,7 @@ PFX так же, как обычный Darwin-генератор. Для раз�
 `RoamingConsortiumOIs` и `MCCAndMNCs` в профиль не добавляются: значения OI нет
 в конфигурации текущей HS20-сети, а Apple указывает `MCCAndMNCs` как
 недоступное на macOS.
+
+Имя пользователя для EAP-TLS берётся из `CN` клиентского сертификата. В Android
+оно записывается в `Credential/Username`, а в Apple-профиле — в
+`EAPClientConfiguration/UserName`.

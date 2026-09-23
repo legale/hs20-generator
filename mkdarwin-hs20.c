@@ -14,6 +14,7 @@
 
 #define UUID_LEN 37
 #define MAX_ROOTS 16
+#define MAX_CN 1024
 
 struct root_cert {
   char pem_path[PATH_MAX];
@@ -318,6 +319,56 @@ static bool is_root_cert(const char *path, const char *info_path)
   return true;
 }
 
+static int read_cert_cn(const char *path, const char *info_path,
+                        char *cn, size_t cn_len)
+{
+  unsigned char *data;
+  size_t len;
+  char *subject;
+  char *p;
+  char *end;
+  size_t n;
+  char *argv[] = {
+      "openssl", "x509", "-in", (char *)path, "-noout", "-subject",
+      "-nameopt", "RFC2253", NULL
+  };
+
+  if (run_openssl(argv, "", info_path) < 0)
+    return -1;
+  if (read_file(info_path, &data, &len) < 0)
+    return -1;
+
+  if (strncmp((char *)data, "subject=", 8)) {
+    free(data);
+    return -1;
+  }
+  subject = (char *)data + 8;
+  p = subject;
+  while (p) {
+    if (!strncmp(p, "CN=", 3) && (p == subject || p[-1] == ','))
+      break;
+    p = strchr(p, ',');
+    if (p)
+      p++;
+  }
+  if (!p || !p[3]) {
+    free(data);
+    return -1;
+  }
+
+  p += 3;
+  end = strchr(p, ',');
+  n = end ? (size_t)(end - p) : strlen(p);
+  if (!n || n >= cn_len) {
+    free(data);
+    return -1;
+  }
+  memcpy(cn, p, n);
+  cn[n] = 0;
+  free(data);
+  return 0;
+}
+
 static int extract_roots(const char *ca_path, const char *tmp_dir,
                          struct root_cert *roots, int max_roots,
                          const char *password)
@@ -454,8 +505,8 @@ static void write_string_array(FILE *fp, const char *key, const char *value)
 
 static void write_wifi(FILE *fp, const char *friendly_name, const char *fqdn,
                        const char *realm, const char *wifi_uuid,
-                       const char *ident_uuid, const struct root_cert *roots,
-                       int root_count)
+                       const char *ident_uuid, const char *username,
+                       const struct root_cert *roots, int root_count)
 {
   fputs("<dict>", fp);
   xml_key_string(fp, "PayloadType", "com.apple.wifi.managed");
@@ -481,6 +532,8 @@ static void write_wifi(FILE *fp, const char *friendly_name, const char *fqdn,
   fputs("<dict>", fp);
   xml_key(fp, "AcceptEAPTypes");
   fputs("<array><integer>13</integer></array>", fp);
+  xml_key(fp, "UserName");
+  xml_string(fp, username);
   xml_key_bool(fp, "TLSCertificateIsRequired", true);
   xml_key_bool(fp, "TLSAllowTrustExceptions", false);
   write_uuid_array(fp, "PayloadCertificateAnchorUUID", roots, root_count);
@@ -489,7 +542,8 @@ static void write_wifi(FILE *fp, const char *friendly_name, const char *fqdn,
 
 static void write_profile(const char *out_path, const char *friendly_name,
                           const char *fqdn, const char *realm,
-                          const char *password, const char *pfx_path,
+                          const char *password, const char *username,
+                          const char *pfx_path,
                           const unsigned char *pfx, size_t pfx_len,
                           struct root_cert *roots, int root_count)
 {
@@ -542,8 +596,8 @@ static void write_profile(const char *out_path, const char *friendly_name,
     write_root(fp, &roots[i], i + 1, der, der_len);
     free(der);
   }
-  write_wifi(fp, friendly_name, fqdn, realm, wifi_uuid, ident_uuid, roots,
-             root_count);
+  write_wifi(fp, friendly_name, fqdn, realm, wifi_uuid, ident_uuid, username,
+             roots, root_count);
   fputs("</array></dict></plist>\n", fp);
   if (fclose(fp) < 0)
     die("cannot finish %s", out_path);
@@ -558,6 +612,8 @@ static void cleanup_tmp(const char *tmp_dir, struct root_cert *roots,
   snprintf(path, sizeof(path), "%s/client.pem", tmp_dir);
   unlink(path);
   snprintf(path, sizeof(path), "%s/client.key", tmp_dir);
+  unlink(path);
+  snprintf(path, sizeof(path), "%s/client-info.txt", tmp_dir);
   unlink(path);
   snprintf(path, sizeof(path), "%s/ca.pem", tmp_dir);
   unlink(path);
@@ -577,8 +633,10 @@ int main(int argc, char **argv)
   char ca_path[PATH_MAX];
   char client_path[PATH_MAX];
   char key_path[PATH_MAX];
+  char info_path[PATH_MAX];
   char out_name[PATH_MAX];
   char tmp_dir[PATH_MAX];
+  char username[MAX_CN];
   unsigned char *pfx;
   unsigned char *data;
   size_t pfx_len;
@@ -608,6 +666,7 @@ int main(int argc, char **argv)
   snprintf(ca_path, sizeof(ca_path), "%s/ca.pem", tmp_dir);
   snprintf(client_path, sizeof(client_path), "%s/client.pem", tmp_dir);
   snprintf(key_path, sizeof(key_path), "%s/client.key", tmp_dir);
+  snprintf(info_path, sizeof(info_path), "%s/client-info.txt", tmp_dir);
 
   client_argv[0] = "openssl";
   client_argv[1] = "pkcs12";
@@ -637,6 +696,8 @@ int main(int argc, char **argv)
       !strstr((char *)data, "-----BEGIN CERTIFICATE-----"))
     die("PFX has no client certificate");
   free(data);
+  if (read_cert_cn(client_path, info_path, username, sizeof(username)) < 0)
+    die("client certificate has no CN");
   if (read_file(key_path, &data, &data_len) < 0 ||
       !strstr((char *)data, "PRIVATE KEY-----"))
     die("PFX has no private key");
@@ -666,8 +727,8 @@ int main(int argc, char **argv)
                         "-hs20.mobileconfig");
   if (output_len < 0 || (size_t)output_len >= sizeof(out_name) - output_used)
     die("output filename is too long");
-  write_profile(out_name, argv[1], argv[2], argv[3], password, argv[4], pfx,
-                pfx_len, roots, root_count);
+  write_profile(out_name, argv[1], argv[2], argv[3], password, username,
+                argv[4], pfx, pfx_len, roots, root_count);
   free(pfx);
   cleanup_tmp(tmp_dir, roots, root_count);
   memset(password, 0, strlen(password));

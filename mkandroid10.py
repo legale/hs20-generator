@@ -351,8 +351,9 @@ def main():
         root_ca_der = cert_der(root_ca)
         fingerprint = cert_sha256(client)
 
-        # Android's ConfigParser loads the PKCS#12 with an empty password and
-        # retrieves the key with a null password. Make the bags unencrypted.
+        # Android 10 Passpoint parser expects an empty PKCS#12 password.
+        # Keep the password empty, but use old PKCS#12 algorithms instead of
+        # passwordless/unencrypted bags: 3DES PBE and SHA-1 MAC.
         run([
             "openssl", "pkcs12", "-export",
             "-inkey", str(key_fn),
@@ -360,17 +361,19 @@ def main():
             "-certfile", str(chain_fn),
             "-out", str(p12_fn),
             "-passout", "pass:",
-            "-keypbe", "NONE",
-            "-certpbe", "NONE",
-            "-nomac",
+            "-keypbe", "PBE-SHA1-3DES",
+            "-certpbe", "PBE-SHA1-3DES",
+            "-macalg", "sha1",
+            "-iter", "2048",
         ])
 
         p12 = p12_fn.read_bytes()
 
-        # Fail before writing output if OpenSSL cannot read it passwordless.
+        # Fail before writing output if OpenSSL cannot verify/read it with the
+        # empty password Android will use.
         run([
             "openssl", "pkcs12", "-in", str(p12_fn),
-            "-info", "-noout", "-nomacver", "-passin", "pass:",
+            "-info", "-noout", "-passin", "pass:",
         ])
 
         # Extract the client certificate back from the generated Android
@@ -378,7 +381,7 @@ def main():
         # identity as in the source PFX.
         inner_data = run([
             "openssl", "pkcs12", "-in", str(p12_fn),
-            "-clcerts", "-nokeys", "-nomacver", "-passin", "pass:",
+            "-clcerts", "-nokeys", "-passin", "pass:",
         ])
         inner_clients = split_pem(inner_data)
         if len(inner_clients) != 1:
@@ -430,7 +433,10 @@ def main():
     print("ca_classification=client_issuer+root_ca:ok")
     print("outer_base64=ok")
     print("multipart=ok")
-    print("pkcs12_passwordless=ok")
+    print("pkcs12_empty_password=ok")
+    print("pkcs12_pbe=PBE-SHA1-3DES")
+    print("pkcs12_mac=sha1")
+    print("pkcs12_iter=2048")
 
 
 if __name__ == "__main__":

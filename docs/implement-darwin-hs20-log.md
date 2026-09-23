@@ -291,3 +291,28 @@ Interfaces:
 - Время попытки совпало только с сообщениями о недоступном `w2config`; в журнале
   `w2config` нет новой RADIUS-сессии. Диагноз: сначала нужно восстановить
   регистрацию/readiness `w2config` в Eureka, затем повторять проверку профиля.
+
+## 2026-09-19 — повторная проверка журнала за последние 5 минут
+
+- Повторно выполнена команда:
+
+  ```sh
+  ssh sysadmin@172.16.133.254 \
+    'sudo -n journalctl --since "5 min ago" --no-pager -o short-iso' \
+    > capture-20260919-220414-radius-journal-5min.log
+  ```
+
+- Получено 8317 строк. В свежем окне снова нет `10.11.11.101`,
+  `RADIUS-DIAG`, `handleRadiusPacket AUTH` и `Access-Request`/`Access-*`.
+  Нового RADIUS-запроса от AP не было.
+- Ошибка сервиса сохраняется:
+
+  ```text
+  No servers available for service: w2config
+  LoadBalancer does not contain an instance for the service w2config
+  503 Service Unavailable from UNKNOWN
+  The token was not received
+  ```
+
+- Состояние не изменилось: прежде чем повторять попытку на Mac, нужно перевести
+  `w2config` из `STARTING` в `UP` в Eureka либо исправить его регистрацию.

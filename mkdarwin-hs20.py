@@ -45,6 +45,14 @@ def cert_info(path):
     return subject, issuer
 
 
+def cert_cn(path):
+    subject, _ = cert_info(path)
+    for part in subject.split(","):
+        if part.startswith("CN=") and part[3:]:
+            return part[3:]
+    die(f"client certificate has no CN: {path}")
+
+
 def cert_der(path):
     return run(["openssl", "x509", "-in", str(path), "-outform", "DER"])
 
@@ -96,6 +104,9 @@ def main():
     roots = []
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
+        client_path = td / "client.pem"
+        client_path.write_bytes(client_pem)
+        username = cert_cn(client_path)
         for i, pem in enumerate(ca_certs):
             path = td / f"ca-{i}.pem"
             path.write_bytes(pem)
@@ -149,6 +160,7 @@ def main():
         "NAIRealmNames": [realm],
         "EAPClientConfiguration": {
             "AcceptEAPTypes": [13],
+            "UserName": username,
             "TLSCertificateIsRequired": True,
             "TLSAllowTrustExceptions": False,
             "PayloadCertificateAnchorUUID": anchor_uuids,
