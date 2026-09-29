@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *.swp
 *.mobileconfig
+*-hs20.xml
+*-hs20-rootca.cer
 mkdarwin-hs20
 capture-*.pcap
 capture-*.log

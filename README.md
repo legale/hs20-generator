@@ -102,3 +102,37 @@ PFX так же, как обычный Darwin-генератор. Для раз�
 Имя пользователя для EAP-TLS берётся из `CN` клиентского сертификата. В Android
 оно записывается в `Credential/Username`, а в Apple-профиле — в
 `EAPClientConfiguration/UserName`.
+
+## Windows HS20
+
+Для Windows-профиля Passpoint/HS20:
+
+```sh
+python3 mkwindows-hs20.py FRIENDLY_NAME FQDN REALM client.pfx
+```
+
+Пример:
+
+```sh
+python3 mkwindows-hs20.py NETAMS wifi.netams.com netams.com rutest-rsa.pfx
+```
+
+Генератор создаёт два файла:
+
+- `<name>-hs20.xml` — WLAN profile XML с элементом `Hotspot2` (namespace v4)
+- `<name>-hs20-rootca.cer` — корневой CA-сертификат в формате DER
+
+В отличие от Apple `mobileconfig`, Windows не поддерживает встраивание
+сертификатов в WLAN-профиль. Сертификаты необходимо импортировать в Windows
+certificate store отдельно перед установкой профиля:
+
+```cmd
+certutil -addstore Root <name>-hs20-rootca.cer
+certutil -importpfx client.pfx
+netsh wlan add profile filename=<name>-hs20.xml
+```
+
+Профиль использует WPA2-Enterprise с EAP-TLS (тип 13). Корневой CA
+привязывается по SHA-1 thumbprint. Требуется Windows 10 1607+.
+
+Для разбора PFX требуется установленный `openssl`.
