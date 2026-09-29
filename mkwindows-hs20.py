@@ -74,7 +74,7 @@ PROFILE_XML = """\
   <name>{name}</name>
   <SSIDConfig>
     <SSID>
-      <name>{name}</name>
+      <name>{ssid}</name>
     </SSID>
   </SSIDConfig>
   <connectionType>ESS</connectionType>
@@ -88,7 +88,7 @@ PROFILE_XML = """\
         <useOneX>true</useOneX>
       </authEncryption>
       <OneX xmlns="http://www.microsoft.com/networking/OneX/v1">
-        <authMode>machine</authMode>
+        <authMode>user</authMode>
         <EAPConfig>
           <EapHostConfig xmlns="http://www.microsoft.com/provisioning/EapHostConfig">
             <EapMethod>
@@ -132,9 +132,10 @@ PROFILE_XML = """\
 """
 
 
-def make_profile(friendly_name, fqdn, realm, root_thumbprint):
+def make_profile(friendly_name, ssid, fqdn, realm, root_thumbprint):
     return PROFILE_XML.format(
         name=escape(friendly_name),
+        ssid=escape(ssid),
         fqdn=escape(fqdn),
         realm=escape(realm),
         thumbprint=root_thumbprint,
@@ -142,13 +143,13 @@ def make_profile(friendly_name, fqdn, realm, root_thumbprint):
 
 
 def main():
-    if len(sys.argv) != 5:
-        die(f"usage: {sys.argv[0]} FRIENDLY_NAME FQDN REALM client.pfx")
+    if len(sys.argv) != 6:
+        die(f"usage: {sys.argv[0]} FRIENDLY_NAME SSID FQDN REALM client.pfx")
 
-    friendly_name, fqdn, realm = sys.argv[1:4]
-    pfx = Path(sys.argv[4])
-    if not friendly_name or not fqdn or not realm:
-        die("friendly name, FQDN and realm must not be empty")
+    friendly_name, ssid, fqdn, realm = sys.argv[1:5]
+    pfx = Path(sys.argv[5])
+    if not friendly_name or not ssid or not fqdn or not realm:
+        die("friendly name, SSID, FQDN and realm must not be empty")
     if not pfx.is_file():
         die(f"{pfx}: not found")
 
@@ -198,7 +199,7 @@ def main():
     base = safe_name(friendly_name)
 
     # WLAN profile XML
-    xml = make_profile(friendly_name, fqdn, realm, root_thumbprint)
+    xml = make_profile(friendly_name, ssid, fqdn, realm, root_thumbprint)
     xml_out = Path(f"{base}-hs20.xml")
     xml_out.write_text(xml, encoding="utf-8")
 

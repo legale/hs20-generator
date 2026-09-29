@@ -108,13 +108,13 @@ PFX так же, как обычный Darwin-генератор. Для раз�
 Для Windows-профиля Passpoint/HS20:
 
 ```sh
-python3 mkwindows-hs20.py FRIENDLY_NAME FQDN REALM client.pfx
+python3 mkwindows-hs20.py FRIENDLY_NAME SSID FQDN REALM client.pfx
 ```
 
 Пример:
 
 ```sh
-python3 mkwindows-hs20.py NETAMS wifi.netams.com netams.com rutest-rsa.pfx
+python3 mkwindows-hs20.py NETAMS gost-eap-tls wifi.netams.com netams.com rutest-rsa.pfx
 ```
 
 Генератор создаёт два файла:
