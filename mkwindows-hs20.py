@@ -212,7 +212,7 @@ def main():
     print()
     print("Install on Windows:")
     print(f"  1. certutil -addstore Root {ca_out}")
-    print(f"  2. certutil -importpfx {pfx.name}")
+    print(f"  2. certutil -user -importpfx {pfx.name}")
     print(f"  3. netsh wlan add profile filename={xml_out}")
 
 

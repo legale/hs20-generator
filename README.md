@@ -128,7 +128,7 @@ certificate store отдельно перед установкой профил�
 
 ```cmd
 certutil -addstore Root <name>-hs20-rootca.cer
-certutil -importpfx client.pfx
+certutil -user -importpfx client.pfx
 netsh wlan add profile filename=<name>-hs20.xml
 ```
 
