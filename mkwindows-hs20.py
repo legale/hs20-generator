@@ -69,7 +69,7 @@ def safe_name(name):
 
 PROFILE_XML = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<WLANProfile xmlns="https://www.microsoft.com/networking/WLAN/profile/v1"
+<WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1"
              xmlns:v4="https://www.microsoft.com/networking/WLAN/profile/v4">
   <name>{name}</name>
   <SSIDConfig>
@@ -87,24 +87,23 @@ PROFILE_XML = """\
         <encryption>AES</encryption>
         <useOneX>true</useOneX>
       </authEncryption>
-      <OneX xmlns="https://www.microsoft.com/networking/OneX/v1">
+      <OneX xmlns="http://www.microsoft.com/networking/OneX/v1">
+        <authMode>machine</authMode>
         <EAPConfig>
-          <EapHostConfig xmlns="https://www.microsoft.com/provisioning/EapHostConfig">
+          <EapHostConfig xmlns="http://www.microsoft.com/provisioning/EapHostConfig">
             <EapMethod>
-              <Type xmlns="https://www.microsoft.com/provisioning/EapCommon">13</Type>
-              <VendorId xmlns="https://www.microsoft.com/provisioning/EapCommon">0</VendorId>
-              <VendorType xmlns="https://www.microsoft.com/provisioning/EapCommon">0</VendorType>
-              <AuthorId xmlns="https://www.microsoft.com/provisioning/EapCommon">0</AuthorId>
+              <Type xmlns="http://www.microsoft.com/provisioning/EapCommon">13</Type>
+              <VendorId xmlns="http://www.microsoft.com/provisioning/EapCommon">0</VendorId>
+              <VendorType xmlns="http://www.microsoft.com/provisioning/EapCommon">0</VendorType>
+              <AuthorId xmlns="http://www.microsoft.com/provisioning/EapCommon">0</AuthorId>
             </EapMethod>
             <Config>
-              <Eap xmlns="https://www.microsoft.com/provisioning/BaseEapConnectionPropertiesV1">
+              <Eap xmlns="http://www.microsoft.com/provisioning/BaseEapConnectionPropertiesV1">
                 <Type>13</Type>
-                <EapType xmlns="https://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV1">
+                <EapType xmlns="http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV1">
                   <CredentialsSource>
                     <CertificateStore>
-                      <SimpleCertificateSelector>
-                        <TrustedRootCA>{thumbprint}</TrustedRootCA>
-                      </SimpleCertificateSelector>
+                      <SimpleCertSelection>true</SimpleCertSelection>
                     </CertificateStore>
                   </CredentialsSource>
                   <ServerValidation>
@@ -113,8 +112,8 @@ PROFILE_XML = """\
                     <TrustedRootCA>{thumbprint}</TrustedRootCA>
                   </ServerValidation>
                   <DifferentUsername>false</DifferentUsername>
-                  <PerformServerValidation xmlns="https://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV2">true</PerformServerValidation>
-                  <AcceptServerName xmlns="https://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV2">false</AcceptServerName>
+                  <PerformServerValidation xmlns="http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV2">true</PerformServerValidation>
+                  <AcceptServerName xmlns="http://www.microsoft.com/provisioning/EapTlsConnectionPropertiesV2">false</AcceptServerName>
                 </EapType>
               </Eap>
             </Config>
